@@ -41,8 +41,10 @@ const AnalysisScreen = () => {
       const startMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
       const startYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
       
-      const startDate = new Date(startYear, startMonth, 26).toISOString().split('T')[0];
-      const endDate = new Date(selectedYear, selectedMonth, 25).toISOString().split('T')[0];
+      // Manual formatting to avoid timezone shifts (e.g., 2026-03-26)
+      const startDate = `${startYear}-${String(startMonth + 1).padStart(2, '0')}-26`;
+      const endDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-25`;
+      
       const { data } = await supabase.from('attendance_logs').select('*').eq('emp_code', emp.emp_code).gte('date', startDate).lte('date', endDate).order('date', { ascending: false });
       setHistory(data || []);
       const counts = (data || []).reduce((acc: any, curr: any) => {
