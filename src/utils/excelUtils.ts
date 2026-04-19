@@ -61,6 +61,8 @@ export const importEmployeesFromExcel = async () => {
       'P': 'PRESENT',
       'A': 'ABSENT',
       'H': 'HALF_DAY',
+      'O': 'OFF',
+      'OFF': 'OFF',
       'PRESENT': 'PRESENT',
       'ABSENT': 'ABSENT',
       'HALF_DAY': 'HALF_DAY'

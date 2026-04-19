@@ -15,7 +15,7 @@ const ManageEmployeesScreen = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const { data } = await supabase.from('employees').select('*').eq('is_active', true).order('name');
+      const { data } = await supabase.from('employees').select('*').eq('is_active', true).order('emp_code');
       setEmployees(data || []);
     } finally { setLoading(false); }
   };

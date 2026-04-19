@@ -10,7 +10,7 @@ const AnalysisScreen = () => {
   const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const [stats, setStats] = useState({ present: 0, absent: 0, halfDay: 0 });
+  const [stats, setStats] = useState({ present: 0, absent: 0, halfDay: 0, off: 0, unpaid: 0 });
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -20,7 +20,7 @@ const AnalysisScreen = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const { data } = await supabase.from('employees').select('*').eq('is_active', true).order('name');
+      const { data } = await supabase.from('employees').select('*').eq('is_active', true).order('emp_code');
       setEmployees(data || []);
       setFilteredEmployees(data || []);
     } finally { setLoading(false); }
@@ -45,9 +45,13 @@ const AnalysisScreen = () => {
         if (curr.status === 'PRESENT') acc.present++;
         else if (curr.status === 'ABSENT') acc.absent++;
         else if (curr.status === 'HALF_DAY') acc.halfDay++;
+        else if (curr.status === 'OFF') acc.off++;
         return acc;
-      }, { present: 0, absent: 0, halfDay: 0 });
-      setStats(counts);
+      }, { present: 0, absent: 0, halfDay: 0, off: 0 });
+
+      // Logic: If absents > 2, the rest are non-paid leaves
+      const unpaid = Math.max(0, counts.absent - 2);
+      setStats({ ...counts, unpaid });
     } finally { setLoading(false); }
   };
 
@@ -74,7 +78,11 @@ const AnalysisScreen = () => {
                 <View style={styles.statsRow}>
                   <View style={styles.statItem}><Text variant="headlineMedium" style={{ color: '#10B981', fontWeight: 'bold' }}>{stats.present}</Text><Text style={styles.blackText}>Presents</Text></View>
                   <View style={styles.statItem}><Text variant="headlineMedium" style={{ color: '#F59E0B', fontWeight: 'bold' }}>{stats.halfDay}</Text><Text style={styles.blackText}>Half-Days</Text></View>
+                  <View style={styles.statItem}><Text variant="headlineMedium" style={{ color: '#6B7280', fontWeight: 'bold' }}>{stats.off}</Text><Text style={styles.blackText}>Offs</Text></View>
+                </View>
+                <View style={[styles.statsRow, { marginTop: 10 }]}>
                   <View style={styles.statItem}><Text variant="headlineMedium" style={{ color: '#EF4444', fontWeight: 'bold' }}>{stats.absent}</Text><Text style={styles.blackText}>Absents</Text></View>
+                  <View style={styles.statItem}><Text variant="headlineMedium" style={{ color: '#991B1B', fontWeight: 'bold' }}>{stats.unpaid}</Text><Text style={styles.blackText}>Non-Paid</Text></View>
                 </View>
               </Card.Content>
             </Card>

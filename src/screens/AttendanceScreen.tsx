@@ -16,7 +16,7 @@ const AttendanceScreen = () => {
   const fetchData = async (selectedDate: string) => {
     try {
       setLoading(true);
-      const { data: empData } = await supabase.from('employees').select('emp_code, name').eq('is_active', true).order('name');
+      const { data: empData } = await supabase.from('employees').select('emp_code, name').eq('is_active', true).order('emp_code');
       setEmployees(empData || []);
       const { data: logData } = await supabase.from('attendance_logs').select('emp_code, status').eq('date', selectedDate);
       const logMap: Record<string, string> = {};
@@ -83,6 +83,9 @@ const AttendanceScreen = () => {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => markAttendance(item.emp_code, 'HALF_DAY')} style={[styles.btn, status === 'HALF_DAY' && {backgroundColor: '#F59E0B', borderColor: '#F59E0B'}]}>
                       <Text style={[styles.btnT, status === 'HALF_DAY' && {color: '#fff'}]}>H</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => markAttendance(item.emp_code, 'OFF')} style={[styles.btn, status === 'OFF' && {backgroundColor: '#6B7280', borderColor: '#6B7280'}]}>
+                      <Text style={[styles.btnT, status === 'OFF' && {color: '#fff'}]}>O</Text>
                     </TouchableOpacity>
                   </View>
                 </Card.Content>
