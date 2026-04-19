@@ -37,7 +37,11 @@ const AnalysisScreen = () => {
   const fetchEmployeeHistory = async (emp: any) => {
     try {
       setLoading(true);
-      const startDate = new Date(selectedYear, selectedMonth - 1, 26).toISOString().split('T')[0];
+      // Logic: Cycle starts on 26th of PREVIOUS month, ends on 25th of SELECTED month
+      const startMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+      const startYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+      
+      const startDate = new Date(startYear, startMonth, 26).toISOString().split('T')[0];
       const endDate = new Date(selectedYear, selectedMonth, 25).toISOString().split('T')[0];
       const { data } = await supabase.from('attendance_logs').select('*').eq('emp_code', emp.emp_code).gte('date', startDate).lte('date', endDate).order('date', { ascending: false });
       setHistory(data || []);
@@ -73,7 +77,9 @@ const AnalysisScreen = () => {
               <Card.Content style={styles.center}>
                 <Avatar.Text size={64} label={selectedEmployee.name.substring(0,2).toUpperCase()} backgroundColor="#000" color="#fff" />
                 <Text variant="headlineSmall" style={[styles.blackText, { fontWeight: 'bold', marginTop: 10 }]}>{selectedEmployee.name}</Text>
-                <Text variant="labelLarge" style={[styles.blackText, styles.cycleBadge]}>Cycle: 26 {months[(selectedMonth + 11) % 12]} - 25 {months[selectedMonth]}</Text>
+                <Text variant="labelLarge" style={[styles.blackText, styles.cycleBadge]}>
+                    Cycle: 26 {months[selectedMonth === 0 ? 11 : selectedMonth - 1]} - 25 {months[selectedMonth]}
+                </Text>
                 
                 <View style={styles.statsRow}>
                   <View style={styles.statItem}><Text variant="headlineMedium" style={{ color: '#10B981', fontWeight: 'bold' }}>{stats.present}</Text><Text style={styles.blackText}>Presents</Text></View>
