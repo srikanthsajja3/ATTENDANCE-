@@ -8,6 +8,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import AttendanceScreen from './src/screens/AttendanceScreen';
 import AnalysisScreen from './src/screens/AnalysisScreen';
 import ManageEmployeesScreen from './src/screens/ManageEmployeesScreen';
+import DailySummaryScreen from './src/screens/DailySummaryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,7 @@ export default function App() {
           >
             <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Admin Dashboard' }} />
             <Stack.Screen name="Attendance" component={AttendanceScreen} options={{ title: 'Mark Attendance' }} />
+            <Stack.Screen name="DailySummary" component={DailySummaryScreen} options={{ title: 'Today\'s Summary' }} />
             <Stack.Screen name="Analysis" component={AnalysisScreen} options={{ title: 'Employee Reports' }} />
             <Stack.Screen name="ManageEmployees" component={ManageEmployeesScreen} options={{ title: 'Manage Roster' }} />
           </Stack.Navigator>

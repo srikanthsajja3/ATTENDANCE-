@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, ActivityIndicator, Platform } from 'react-native';
 import { Text, TextInput, Button, Card, FAB, Portal, Dialog, Avatar } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 
@@ -34,13 +34,33 @@ const ManageEmployeesScreen = () => {
   };
 
   const handleDelete = async (code: string) => {
-    Alert.alert('Confirm', 'Remove this employee?', [
-      { text: 'Cancel' },
-      { text: 'Remove', onPress: async () => {
-        await supabase.from('employees').update({ is_active: false }).eq('emp_code', code);
+    const performDelete = async () => {
+      try {
+        setLoading(true);
+        const { error } = await supabase.from('employees').update({ is_active: false }).eq('emp_code', code);
+        if (error) throw error;
         fetchEmployees();
-      }}
-    ]);
+      } catch (error: any) {
+        if (Platform.OS === 'web') {
+          alert('Error: ' + error.message);
+        } else {
+          Alert.alert('Error', error.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Remove this employee?')) {
+        performDelete();
+      }
+    } else {
+      Alert.alert('Confirm', 'Remove this employee?', [
+        { text: 'Cancel' },
+        { text: 'Remove', onPress: performDelete }
+      ]);
+    }
   };
 
   return (

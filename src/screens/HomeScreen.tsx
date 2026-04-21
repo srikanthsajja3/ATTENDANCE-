@@ -57,24 +57,31 @@ const HomeScreen = ({ navigation }: any) => {
       <Text variant="titleLarge" style={[styles.sectionTitle, styles.blackText]}>Quick Actions</Text>
       
       <View style={styles.actionGrid}>
-        <Card style={[styles.actionCard, { width: isMobile ? '100%' : '31%' }]} onPress={() => navigation.navigate('Attendance')}>
+        <Card style={[styles.actionCard, { width: isMobile ? '48%' : '23%' }]} onPress={() => navigation.navigate('Attendance')}>
           <Card.Content style={styles.center}>
             <Avatar.Icon size={40} icon="clipboard-edit-outline" backgroundColor="#f0f0f0" color="#000" />
-            <Text variant="titleMedium" style={[styles.actionTitle, styles.blackText]}>Take Attendance</Text>
+            <Text variant="titleSmall" style={[styles.actionTitle, styles.blackText]}>Attendance</Text>
           </Card.Content>
         </Card>
 
-        <Card style={[styles.actionCard, { width: isMobile ? '100%' : '31%' }]} onPress={() => navigation.navigate('Analysis')}>
+        <Card style={[styles.actionCard, { width: isMobile ? '48%' : '23%' }]} onPress={() => navigation.navigate('DailySummary')}>
+          <Card.Content style={styles.center}>
+            <Avatar.Icon size={40} icon="format-list-bulleted" backgroundColor="#f0f0f0" color="#000" />
+            <Text variant="titleSmall" style={[styles.actionTitle, styles.blackText]}>Summary</Text>
+          </Card.Content>
+        </Card>
+
+        <Card style={[styles.actionCard, { width: isMobile ? '48%' : '23%' }]} onPress={() => navigation.navigate('Analysis')}>
           <Card.Content style={styles.center}>
             <Avatar.Icon size={40} icon="chart-bar" backgroundColor="#f0f0f0" color="#000" />
-            <Text variant="titleMedium" style={[styles.actionTitle, styles.blackText]}>Leave Analysis</Text>
+            <Text variant="titleSmall" style={[styles.actionTitle, styles.blackText]}>Analysis</Text>
           </Card.Content>
         </Card>
 
-        <Card style={[styles.actionCard, { width: isMobile ? '100%' : '31%' }]} onPress={() => navigation.navigate('ManageEmployees')}>
+        <Card style={[styles.actionCard, { width: isMobile ? '48%' : '23%' }]} onPress={() => navigation.navigate('ManageEmployees')}>
           <Card.Content style={styles.center}>
             <Avatar.Icon size={40} icon="account-cog" backgroundColor="#f0f0f0" color="#000" />
-            <Text variant="titleMedium" style={[styles.actionTitle, styles.blackText]}>Manage Roster</Text>
+            <Text variant="titleSmall" style={[styles.actionTitle, styles.blackText]}>Roster</Text>
           </Card.Content>
         </Card>
       </View>
@@ -114,9 +121,9 @@ const styles = StyleSheet.create({
   welcomeSection: { marginBottom: 32 },
   blackText: { color: '#000' },
   statsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
-  statsContainerMobile: { flexDirection: 'column' },
+  statsContainerMobile: { flexDirection: 'column', marginBottom: 8 },
   statCard: { flex: 0.48, backgroundColor: '#fff', borderRadius: 16, elevation: 3, borderWidth: 1, borderColor: '#000' },
-  statCardMobile: { flex: 0, marginBottom: 16 },
+  statCardMobile: { width: '100%', marginBottom: 16 },
   center: { alignItems: 'center', paddingVertical: 20 },
   statNum: { fontWeight: '800', marginTop: 12 },
   statLabel: { textTransform: 'uppercase', letterSpacing: 1, fontSize: 12, fontWeight: '700' },
