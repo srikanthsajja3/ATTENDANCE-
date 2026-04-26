@@ -77,7 +77,7 @@ const AnalysisScreen = () => {
           <ScrollView style={styles.scrollContent}>
             <Card style={styles.profileCard}>
               <Card.Content style={styles.center}>
-                <Avatar.Text size={64} label={selectedEmployee.name.substring(0,2).toUpperCase()} backgroundColor="#000" color="#fff" />
+                <Avatar.Text size={64} label={selectedEmployee.name.substring(0,2).toUpperCase()} style={{ backgroundColor: "#000" }} color="#fff" />
                 <Text variant="headlineSmall" style={[styles.blackText, { fontWeight: 'bold', marginTop: 10 }]}>{selectedEmployee.name}</Text>
                 <Text variant="labelLarge" style={[styles.blackText, styles.cycleBadge]}>
                     Cycle: 26 {months[selectedMonth === 0 ? 11 : selectedMonth - 1]} - 25 {months[selectedMonth]}
@@ -126,7 +126,7 @@ const AnalysisScreen = () => {
                     titleStyle={styles.blackText}
                     subtitle={item.emp_code}
                     subtitleStyle={styles.blackText}
-                    right={() => <Button icon="chevron-right" textColor="#000" onPress={() => setSelectedEmployee(item)} />} 
+                    right={() => <Button icon="chevron-right" textColor="#000" onPress={() => setSelectedEmployee(item)}>View</Button>} 
                 />
               </Card>
             )}

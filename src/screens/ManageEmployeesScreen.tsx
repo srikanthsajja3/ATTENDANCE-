@@ -92,7 +92,7 @@ const ManageEmployeesScreen = () => {
       />
 
       <Portal>
-        <Dialog visible={visible} onDismiss={() => setVisible(false)} style={{ backgroundColor: '#fff', borderBotomWidth: 4, borderBottomColor: '#000' }}>
+        <Dialog visible={visible} onDismiss={() => setVisible(false)} style={{ backgroundColor: '#fff', borderBottomWidth: 4, borderBottomColor: '#000' }}>
           <Dialog.Title style={{ color: '#000', fontWeight: 'bold' }}>{editingEmp ? 'Edit Employee' : 'Add Employee'}</Dialog.Title>
           <Dialog.Content>
             <TextInput 

@@ -44,15 +44,19 @@ export const importEmployeesFromExcel = async () => {
     }
 
     const workbook = XLSX.read(fileBase64, { type: 'base64' });
-    const sheetName = workbook.SheetNames[0];
+    
+    // Try to find a sheet with attendance data, prefer 'IN-OUT' or 'Attendance'
+    let sheetName = workbook.SheetNames.find(name => 
+      ['IN-OUT', 'ATTENDANCE', 'SHEET1'].includes(name.toUpperCase())
+    ) || workbook.SheetNames[0];
+    
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet) as EmployeeData[];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
     if (jsonData.length === 0) {
       return { success: false, message: 'No data found in Excel' };
     }
 
-    // 1. Format for Supabase with flexible column matching
     const employees: any[] = [];
     const logs: any[] = [];
 
@@ -65,37 +69,62 @@ export const importEmployeesFromExcel = async () => {
       'OFF': 'OFF',
       'PRESENT': 'PRESENT',
       'ABSENT': 'ABSENT',
+      'ABSNET': 'ABSENT', // Handle typo in user's file
       'HALF_DAY': 'HALF_DAY'
     };
 
     jsonData.forEach((row: any) => {
-      const empCodeKey = Object.keys(row).find(k => 
-        k.toLowerCase().replace(/[\s._]/g, '') === 'empcode' || 
-        k.toLowerCase().replace(/[\s._]/g, '') === 'code'
-      );
-      const nameKey = Object.keys(row).find(k => 
-        k.toLowerCase().replace(/[\s._]/g, '') === 'name'
-      );
+      // Find Employee Code / ID
+      const empCodeKey = Object.keys(row).find(k => {
+        const normalized = k.toLowerCase().replace(/[\s._]/g, '');
+        return normalized === 'empcode' || normalized === 'code' || normalized === 'employeeid' || normalized === 'id';
+      });
+
+      // Find Name
+      const nameKey = Object.keys(row).find(k => {
+        const normalized = k.toLowerCase().replace(/[\s._]/g, '');
+        return normalized === 'name' || normalized === 'employeename';
+      });
 
       const empCode = String(row[empCodeKey || ''] || '').trim();
       const name = String(row[nameKey || ''] || '').trim();
 
-      if (empCode && name) {
+      if (empCode && name && empCode !== 'IN-TIME' && empCode !== 'Employee ID') {
         employees.push({ emp_code: empCode, name, is_active: true });
 
-        // 2. Parse attendance columns (e.g., "26 Th", "1 W")
+        // Parse attendance columns
         Object.keys(row).forEach(key => {
-          const dateMatch = key.match(/^(\d+)\s*([A-Za-z]*)$/);
-          if (dateMatch) {
-            const dayNum = parseInt(dateMatch[1]);
-            const status = statusMap[String(row[key]).toUpperCase().trim()];
-            
+          let date: string | null = null;
+          let status: string | null = null;
+
+          // Case 1: Key is a date format like "12/26/25" or "1/1/26"
+          const fullDateMatch = key.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+          if (fullDateMatch) {
+            const m = parseInt(fullDateMatch[1]) - 1;
+            const d = parseInt(fullDateMatch[2]);
+            let y = parseInt(fullDateMatch[3]);
+            if (y < 100) y += 2000;
+            date = new Date(y, m, d).toISOString().split('T')[0];
+          } 
+          // Case 2: Key is a day number like "26 Th" or "1 W"
+          else {
+            const dayMatch = key.match(/^(\d+)\s*([A-Za-z]*)$/);
+            if (dayMatch) {
+              const dayNum = parseInt(dayMatch[1]);
+              const month = (dayNum > 20) ? 2 : 3; // March or April 2026
+              date = new Date(2026, month, dayNum).toISOString().split('T')[0];
+            }
+          }
+
+          if (date) {
+            const val = row[key];
+            if (typeof val === 'number') {
+              status = 'PRESENT'; // Numerical value usually means IN-TIME or worked hours
+            } else if (typeof val === 'string') {
+              status = statusMap[val.toUpperCase().trim()];
+            }
+
             if (status) {
-              // Determine month based on current context (April 2026)
-              // If day is large (26-31), it's likely March. If small (1-17), it's April.
-              const month = (dayNum > 20) ? 2 : 3; // 2 = March, 3 = April (0-indexed)
-              const date = new Date(2026, month, dayNum).toISOString().split('T')[0];
-              
               logs.push({
                 emp_code: empCode,
                 date: date,

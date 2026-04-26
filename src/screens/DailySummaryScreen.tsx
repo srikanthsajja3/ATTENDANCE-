@@ -59,7 +59,7 @@ const DailySummaryScreen = () => {
         <Card.Title 
           title={`Absents (${absents.length})`} 
           titleStyle={{ color: '#EF4444', fontWeight: 'bold' }}
-          left={(props) => <Avatar.Icon {...props} icon="account-off" backgroundColor="#FEE2E2" color="#EF4444" />}
+          left={(props) => <Avatar.Icon {...props} icon="account-off" style={{ backgroundColor: "#FEE2E2" }} color="#EF4444" />}
         />
         <Divider />
         <Card.Content>
@@ -83,7 +83,7 @@ const DailySummaryScreen = () => {
         <Card.Title 
           title={`Offs (${offs.length})`} 
           titleStyle={{ color: '#6B7280', fontWeight: 'bold' }}
-          left={(props) => <Avatar.Icon {...props} icon="calendar-remove" backgroundColor="#F3F4F6" color="#6B7280" />}
+          left={(props) => <Avatar.Icon {...props} icon="calendar-remove" style={{ backgroundColor: "#F3F4F6" }} color="#6B7280" />}
         />
         <Divider />
         <Card.Content>

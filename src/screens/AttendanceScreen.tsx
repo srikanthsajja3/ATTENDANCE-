@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   header: { padding: 20, backgroundColor: '#fff', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#000' },
   blackText: { color: '#000' },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  webDate: { padding: 8, borderRadius: 5, border: '2px solid #000', fontSize: 16, color: '#000', fontWeight: 'bold' },
+  webDate: { padding: 8, borderRadius: 5, borderWidth: 2, borderColor: '#000', borderStyle: 'solid', fontSize: 16, color: '#000', fontWeight: 'bold' },
   list: { padding: 15, maxWidth: 800, width: '100%', alignSelf: 'center' },
   card: { marginBottom: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
