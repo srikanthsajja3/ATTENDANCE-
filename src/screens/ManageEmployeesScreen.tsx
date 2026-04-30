@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert, ActivityIndicator, Platform } from 'react-native';
-import { Text, TextInput, Button, Card, FAB, Portal, Dialog, Avatar } from 'react-native-paper';
+import { Text, TextInput, Button, Card, FAB, Portal, Dialog, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 
 const ManageEmployeesScreen = () => {
@@ -11,6 +11,7 @@ const ManageEmployeesScreen = () => {
   
   const [empName, setEmpName] = useState('');
   const [empCode, setEmpCode] = useState('');
+  const theme = useTheme();
 
   const fetchEmployees = async () => {
     try {
@@ -64,9 +65,9 @@ const ManageEmployeesScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: '#000' }}>Manage Roster</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { borderBottomColor: theme.colors.outlineVariant }]}>
+        <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: theme.colors.onBackground }}>Manage Roster</Text>
       </View>
 
       <FlatList
@@ -74,16 +75,16 @@ const ManageEmployeesScreen = () => {
         keyExtractor={item => item.emp_code}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <Card style={styles.card}>
+          <Card style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
             <Card.Title 
               title={item.name} 
-              titleStyle={{ color: '#000', fontWeight: 'bold' }}
+              titleStyle={{ color: theme.colors.onSurface, fontWeight: 'bold' }}
               subtitle={item.emp_code}
-              subtitleStyle={{ color: '#000' }}
+              subtitleStyle={{ color: theme.colors.onSurfaceVariant }}
               right={() => (
                 <View style={{ flexDirection: 'row', paddingRight: 10 }}>
-                  <Button mode="text" textColor="#000" compact onPress={() => { setEditingEmp(item); setEmpName(item.name); setEmpCode(item.emp_code); setVisible(true); }}>Edit</Button>
-                  <Button mode="text" textColor="red" compact onPress={() => handleDelete(item.emp_code)}>Remove</Button>
+                  <Button mode="text" compact onPress={() => { setEditingEmp(item); setEmpName(item.name); setEmpCode(item.emp_code); setVisible(true); }}>Edit</Button>
+                  <Button mode="text" textColor={theme.colors.error} compact onPress={() => handleDelete(item.emp_code)}>Remove</Button>
                 </View>
               )}
             />
@@ -92,17 +93,14 @@ const ManageEmployeesScreen = () => {
       />
 
       <Portal>
-        <Dialog visible={visible} onDismiss={() => setVisible(false)} style={{ backgroundColor: '#fff', borderBottomWidth: 4, borderBottomColor: '#000' }}>
-          <Dialog.Title style={{ color: '#000', fontWeight: 'bold' }}>{editingEmp ? 'Edit Employee' : 'Add Employee'}</Dialog.Title>
+        <Dialog visible={visible} onDismiss={() => setVisible(false)}>
+          <Dialog.Title style={{ fontWeight: 'bold' }}>{editingEmp ? 'Edit Employee' : 'Add Employee'}</Dialog.Title>
           <Dialog.Content>
             <TextInput 
                 label="Name" 
                 value={empName} 
                 onChangeText={setEmpName} 
-                style={{ marginBottom: 10, backgroundColor: '#fff' }} 
-                textColor="#000"
-                outlineColor="#000"
-                activeOutlineColor="#000"
+                style={{ marginBottom: 10 }} 
                 mode="outlined"
             />
             <TextInput 
@@ -110,38 +108,34 @@ const ManageEmployeesScreen = () => {
                 value={empCode} 
                 onChangeText={setEmpCode} 
                 disabled={!!editingEmp} 
-                style={{ backgroundColor: '#fff' }}
-                textColor="#000"
-                outlineColor="#000"
-                activeOutlineColor="#000"
                 mode="outlined"
             />
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setVisible(false)} textColor="#000">Cancel</Button>
-            <Button mode="contained" onPress={handleSave} buttonColor="#000" textColor="#fff">Save</Button>
+            <Button onPress={() => setVisible(false)}>Cancel</Button>
+            <Button mode="contained" onPress={handleSave}>Save</Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
 
       <FAB
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         icon="plus"
         onPress={() => { setEditingEmp(null); setEmpName(''); setEmpCode(''); setVisible(true); }}
         label="Add New"
-        color="#fff"
+        color={theme.colors.onPrimary}
       />
-      {loading && !visible && <ActivityIndicator color="#000" style={styles.loader} />}
+      {loading && !visible && <ActivityIndicator size="large" style={styles.loader} />}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: { padding: 20, backgroundColor: '#fff', borderBottomWidth: 2, borderBottomColor: '#000' },
+  container: { flex: 1 },
+  header: { padding: 20, borderBottomWidth: 2 },
   list: { padding: 15, maxWidth: 800, width: '100%', alignSelf: 'center' },
-  card: { marginBottom: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#000' },
-  fab: { position: 'absolute', margin: 20, right: 0, bottom: 0, backgroundColor: '#000' },
+  card: { marginBottom: 10, borderWidth: 1 },
+  fab: { position: 'absolute', margin: 20, right: 0, bottom: 0 },
   loader: { position: 'absolute', top: '50%', left: '50%' }
 });
 

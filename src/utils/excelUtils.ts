@@ -4,10 +4,23 @@ import * as XLSX from 'xlsx';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 
-export interface EmployeeData {
-  'EMP.CODE': string;
-  NAME: string;
-}
+const parseTimeStr = (str: string) => {
+  if (!str) return 0;
+  
+  // Case 1: "Xh Ym" or "Xh" or "Ym"
+  const hMatch = str.match(/(\d+)h/);
+  const mMatch = str.match(/(\d+)m/);
+  
+  if (hMatch || mMatch) {
+    const h = hMatch ? parseInt(hMatch[1]) : 0;
+    const m = mMatch ? parseInt(mMatch[1]) : 0;
+    return h + (m / 60);
+  }
+  
+  // Case 2: Decimal number "1.5"
+  const decimalValue = parseFloat(str);
+  return isNaN(decimalValue) ? 0 : decimalValue;
+};
 
 export const importEmployeesFromExcel = async () => {
   try {
@@ -25,7 +38,6 @@ export const importEmployeesFromExcel = async () => {
     let fileBase64: string;
 
     if (Platform.OS === 'web') {
-      // Web specific way to read file
       const response = await fetch(fileUri);
       const blob = await response.blob();
       fileBase64 = await new Promise((resolve) => {
@@ -37,19 +49,13 @@ export const importEmployeesFromExcel = async () => {
         reader.readAsDataURL(blob);
       });
     } else {
-      // Mobile specific way
       fileBase64 = await FileSystem.readAsStringAsync(fileUri, {
         encoding: 'base64',
       });
     }
 
     const workbook = XLSX.read(fileBase64, { type: 'base64' });
-    
-    // Try to find a sheet with attendance data, prefer 'IN-OUT' or 'Attendance'
-    let sheetName = workbook.SheetNames.find(name => 
-      ['IN-OUT', 'ATTENDANCE', 'SHEET1'].includes(name.toUpperCase())
-    ) || workbook.SheetNames[0];
-    
+    let sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
@@ -60,7 +66,6 @@ export const importEmployeesFromExcel = async () => {
     const employees: any[] = [];
     const logs: any[] = [];
 
-    // Map status codes
     const statusMap: Record<string, string> = {
       'P': 'PRESENT',
       'A': 'ABSENT',
@@ -69,66 +74,79 @@ export const importEmployeesFromExcel = async () => {
       'OFF': 'OFF',
       'PRESENT': 'PRESENT',
       'ABSENT': 'ABSENT',
-      'ABSNET': 'ABSENT', // Handle typo in user's file
       'HALF_DAY': 'HALF_DAY'
     };
 
     jsonData.forEach((row: any) => {
-      // Find Employee Code / ID
+      // Improved matching for "Employee ID" and "Employee Name"
       const empCodeKey = Object.keys(row).find(k => {
         const normalized = k.toLowerCase().replace(/[\s._]/g, '');
-        return normalized === 'empcode' || normalized === 'code' || normalized === 'employeeid' || normalized === 'id';
+        return ['empcode', 'code', 'employeeid', 'id'].includes(normalized);
       });
 
-      // Find Name
       const nameKey = Object.keys(row).find(k => {
         const normalized = k.toLowerCase().replace(/[\s._]/g, '');
-        return normalized === 'name' || normalized === 'employeename';
+        return ['name', 'employeename', 'name'].includes(normalized);
       });
 
       const empCode = String(row[empCodeKey || ''] || '').trim();
       const name = String(row[nameKey || ''] || '').trim();
 
-      if (empCode && name && empCode !== 'IN-TIME' && empCode !== 'Employee ID') {
+      if (empCode && name) {
         employees.push({ emp_code: empCode, name, is_active: true });
 
-        // Parse attendance columns
         Object.keys(row).forEach(key => {
-          let date: string | null = null;
-          let status: string | null = null;
+          let dateStr: string | null = null;
 
-          // Case 1: Key is a date format like "12/26/25" or "1/1/26"
-          const fullDateMatch = key.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-          if (fullDateMatch) {
-            const m = parseInt(fullDateMatch[1]) - 1;
-            const d = parseInt(fullDateMatch[2]);
-            let y = parseInt(fullDateMatch[3]);
-            if (y < 100) y += 2000;
-            date = new Date(y, m, d).toISOString().split('T')[0];
-          } 
-          // Case 2: Key is a day number like "26 Th" or "1 W"
-          else {
-            const dayMatch = key.match(/^(\d+)\s*([A-Za-z]*)$/);
-            if (dayMatch) {
-              const dayNum = parseInt(dayMatch[1]);
-              const month = (dayNum > 20) ? 2 : 3; // March or April 2026
-              date = new Date(2026, month, dayNum).toISOString().split('T')[0];
+          if (/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+            dateStr = key;
+          } else {
+            const fullDateMatch = key.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+            if (fullDateMatch) {
+              const m = parseInt(fullDateMatch[1]) - 1;
+              const d = parseInt(fullDateMatch[2]);
+              let y = parseInt(fullDateMatch[3]);
+              if (y < 100) y += 2000;
+              dateStr = new Date(y, m, d).toISOString().split('T')[0];
             }
           }
 
-          if (date) {
-            const val = row[key];
-            if (typeof val === 'number') {
-              status = 'PRESENT'; // Numerical value usually means IN-TIME or worked hours
-            } else if (typeof val === 'string') {
-              status = statusMap[val.toUpperCase().trim()];
-            }
+          if (dateStr) {
+            const rawVal = String(row[key] || '').toUpperCase().trim();
+            if (!rawVal) return;
+
+            const mainStatus = rawVal.split(' ')[0];
+            const status = statusMap[mainStatus];
 
             if (status) {
+              let lateHours = 0;
+              let permHours = 0;
+
+              // Match content inside parentheses, e.g., "P (L:1h 30m,P:2h)"
+              const timeParts = rawVal.match(/\(([^)]+)\)/);
+              if (timeParts) {
+                const parts = timeParts[1].split(',');
+                parts.forEach(p => {
+                  if (p.trim().startsWith('L:')) {
+                    lateHours = parseTimeStr(p.replace('L:', '').trim());
+                  } else if (p.trim().startsWith('P:')) {
+                    permHours = parseTimeStr(p.replace('P:', '').trim());
+                  }
+                });
+              } else {
+                // Fallback for older formats or direct L:X P:Y matches
+                const lateMatch = rawVal.match(/L:([\w\d.]+)/);
+                const permMatch = rawVal.match(/P:([\w\d.]+)/);
+                if (lateMatch) lateHours = parseTimeStr(lateMatch[1]);
+                if (permMatch) permHours = parseTimeStr(permMatch[1]);
+              }
+
               logs.push({
                 emp_code: empCode,
-                date: date,
-                status: status
+                date: dateStr,
+                status: status,
+                late_hours: lateHours,
+                permission_hours: permHours
               });
             }
           }
@@ -137,23 +155,20 @@ export const importEmployeesFromExcel = async () => {
     });
 
     if (employees.length === 0) {
-        return { success: false, message: 'Invalid data format. Ensure columns "Emp. Code" and "Name" exist.' };
+        return { success: false, message: 'Could not find "Employee ID" or "Employee Name" columns.' };
     }
 
-    // Upsert Employees
-    const { error: empError } = await supabase
-      .from('employees')
-      .upsert(employees, { onConflict: 'emp_code' });
-
+    // 1. Restore Employees
+    const { error: empError } = await supabase.from('employees').upsert(employees, { onConflict: 'emp_code' });
     if (empError) throw empError;
 
-    // Upsert Logs (if any)
+    // 2. Restore Logs in chunks
     if (logs.length > 0) {
-      const { error: logError } = await supabase
-        .from('attendance_logs')
-        .upsert(logs, { onConflict: 'emp_code, date' });
-      
-      if (logError) console.error('History Import Error:', logError);
+      for (let i = 0; i < logs.length; i += 50) {
+        const chunk = logs.slice(i, i + 50);
+        const { error: logError } = await supabase.from('attendance_logs').upsert(chunk, { onConflict: 'emp_code, date' });
+        if (logError) throw logError;
+      }
     }
 
     return { success: true, count: employees.length, logsCount: logs.length };

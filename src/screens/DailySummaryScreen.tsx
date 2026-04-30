@@ -1,119 +1,211 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Text, Card, Avatar, Divider, List } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
+import { Text, Card, Avatar, Divider, List, useTheme, Button } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const DailySummaryScreen = () => {
   const [loading, setLoading] = useState(true);
   const [absents, setAbsents] = useState<any[]>([]);
   const [offs, setOffs] = useState<any[]>([]);
+  const [lpEntries, setLpEntries] = useState<any[]>([]);
+  const [date, setDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const theme = useTheme();
 
-  const fetchTodaySummary = async () => {
+  // Use local date parts to avoid UTC shifting
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`;
+
+  const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+
+  const formatTime = (decimalHours: number | null) => {
+    if (decimalHours == null || decimalHours === 0) return null;
+    const totalMinutes = Math.round(decimalHours * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+  };
+
+  const fetchSummary = async (selectedDate: string) => {
     try {
       setLoading(true);
-      const today = new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
         .from('attendance_logs')
         .select(`
           status,
+          permission_hours,
+          late_hours,
           employees (
             emp_code,
             name
           )
         `)
-        .eq('date', today);
+        .eq('date', selectedDate);
 
       if (error) throw error;
 
       const absentList = data?.filter(item => item.status === 'ABSENT') || [];
       const offList = data?.filter(item => item.status === 'OFF') || [];
+      const lpList = data?.filter(item => Number(item.permission_hours) > 0 || Number(item.late_hours) > 0) || [];
 
       setAbsents(absentList);
       setOffs(offList);
+      setLpEntries(lpList);
     } catch (error) {
-      console.error('Error fetching today summary:', error);
+      console.error('Error fetching summary:', error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTodaySummary();
-  }, []);
-
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#000" />
-      </View>
-    );
-  }
+    fetchSummary(dateStr);
+  }, [dateStr]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text variant="headlineMedium" style={styles.title}>Today's Summary</Text>
-      <Text variant="bodyMedium" style={styles.subtitle}>{new Date().toDateString()}</Text>
-
-      <Card style={styles.sectionCard}>
-        <Card.Title 
-          title={`Absents (${absents.length})`} 
-          titleStyle={{ color: '#EF4444', fontWeight: 'bold' }}
-          left={(props) => <Avatar.Icon {...props} icon="account-off" style={{ backgroundColor: "#FEE2E2" }} color="#EF4444" />}
-        />
-        <Divider />
-        <Card.Content>
-          {absents.length > 0 ? (
-            absents.map((item, index) => (
-              <List.Item
-                key={index}
-                title={(item.employees as any)?.name || 'Unknown'}
-                description={(item.employees as any)?.emp_code || 'N/A'}
-                left={props => <List.Icon {...props} icon="circle-small" />}
-                titleStyle={{ color: '#000' }}
-              />
-            ))
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={styles.content}>
+      <View style={styles.header}>
+        <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onBackground }]}>
+          {dateStr === todayStr ? "Today's Summary" : "Daily Summary"}
+        </Text>
+        <View style={styles.dateRow}>
+          <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>Select Date: </Text>
+          {Platform.OS === 'web' ? (
+            <input 
+              type="date" 
+              value={dateStr} 
+              onChange={(e) => {
+                const [y, m, d] = e.target.value.split('-');
+                setDate(new Date(parseInt(y), parseInt(m) - 1, parseInt(d)));
+              }}
+              style={{ 
+                ...styles.webDate,
+                backgroundColor: theme.colors.surface, 
+                color: theme.colors.onSurface,
+                borderColor: theme.colors.outline
+              }}
+            />
           ) : (
-            <Text style={styles.emptyText}>No one is absent today.</Text>
+            <Button mode="outlined" onPress={() => setShowPicker(true)}>{dateStr}</Button>
           )}
-        </Card.Content>
-      </Card>
+          {showPicker && <DateTimePicker value={date} mode="date" onChange={(e, d) => { setShowPicker(false); if(d) setDate(d); }} />}
+        </View>
+      </View>
 
-      <Card style={styles.sectionCard}>
-        <Card.Title 
-          title={`Offs (${offs.length})`} 
-          titleStyle={{ color: '#6B7280', fontWeight: 'bold' }}
-          left={(props) => <Avatar.Icon {...props} icon="calendar-remove" style={{ backgroundColor: "#F3F4F6" }} color="#6B7280" />}
-        />
-        <Divider />
-        <Card.Content>
-          {offs.length > 0 ? (
-            offs.map((item, index) => (
-              <List.Item
-                key={index}
-                title={(item.employees as any)?.name || 'Unknown'}
-                description={(item.employees as any)?.emp_code || 'N/A'}
-                left={props => <List.Icon {...props} icon="circle-small" />}
-                titleStyle={{ color: '#000' }}
-              />
-            ))
-          ) : (
-            <Text style={styles.emptyText}>No one has an off today.</Text>
-          )}
-        </Card.Content>
-      </Card>
+      <Text variant="bodyMedium" style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>
+        {date.toDateString()}
+      </Text>
+
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <ActivityIndicator size="large" />
+        </View>
+      ) : (
+        <>
+          <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
+            <Card.Title 
+              title={`Absents (${absents.length})`} 
+              titleStyle={{ color: '#EF4444', fontWeight: 'bold' }}
+              left={(props) => <Avatar.Icon {...props} icon="account-off" style={{ backgroundColor: theme.dark ? '#452727' : '#FEE2E2' }} color="#EF4444" />}
+            />
+            <Divider />
+            <Card.Content>
+              {absents.length > 0 ? (
+                absents.map((item, index) => (
+                  <List.Item
+                    key={index}
+                    title={(item.employees as any)?.name || 'Unknown'}
+                    description={(item.employees as any)?.emp_code || 'N/A'}
+                    left={props => <List.Icon {...props} icon="circle-small" color={theme.colors.onSurfaceVariant} />}
+                    titleStyle={{ color: theme.colors.onSurface }}
+                    descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                  />
+                ))
+              ) : (
+                <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No one was absent on this day.</Text>
+              )}
+            </Card.Content>
+          </Card>
+
+          <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
+            <Card.Title 
+              title={`Late & Permissions (${lpEntries.length})`} 
+              titleStyle={{ color: '#8B5CF6', fontWeight: 'bold' }}
+              left={(props) => <Avatar.Icon {...props} icon="clock-check" style={{ backgroundColor: theme.dark ? '#2E2A41' : '#F5F3FF' }} color="#8B5CF6" />}
+            />
+            <Divider />
+            <Card.Content>
+              {lpEntries.length > 0 ? (
+                lpEntries.map((item, index) => {
+                    const desc = [];
+                    const lateFormatted = formatTime(item.late_hours);
+                    const permFormatted = formatTime(item.permission_hours);
+                    if (lateFormatted) desc.push(`Late: ${lateFormatted}`);
+                    if (permFormatted) desc.push(`Perm: ${permFormatted}`);
+                    return (
+                        <List.Item
+                            key={index}
+                            title={(item.employees as any)?.name || 'Unknown'}
+                            description={`${(item.employees as any)?.emp_code || 'N/A'} • ${desc.join(', ')}`}
+                            left={props => <List.Icon {...props} icon="circle-small" color={theme.colors.onSurfaceVariant} />}
+                            titleStyle={{ color: theme.colors.onSurface }}
+                            descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                        />
+                    );
+                })
+              ) : (
+                <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No late or permission entries on this day.</Text>
+              )}
+            </Card.Content>
+          </Card>
+
+          <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
+            <Card.Title 
+              title={`Offs (${offs.length})`} 
+              titleStyle={{ color: theme.colors.onSurfaceVariant, fontWeight: 'bold' }}
+              left={(props) => <Avatar.Icon {...props} icon="calendar-remove" style={{ backgroundColor: theme.colors.surfaceVariant }} color={theme.colors.onSurfaceVariant} />}
+            />
+            <Divider />
+            <Card.Content>
+              {offs.length > 0 ? (
+                offs.map((item, index) => (
+                  <List.Item
+                    key={index}
+                    title={(item.employees as any)?.name || 'Unknown'}
+                    description={(item.employees as any)?.emp_code || 'N/A'}
+                    left={props => <List.Icon {...props} icon="circle-small" color={theme.colors.onSurfaceVariant} />}
+                    titleStyle={{ color: theme.colors.onSurface }}
+                    descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+                  />
+                ))
+              ) : (
+                <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No one had an off on this day.</Text>
+              )}
+            </Card.Content>
+          </Card>
+        </>
+      )}
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1 },
   content: { padding: 20, maxWidth: 800, alignSelf: 'center', width: '100%' },
-  center: { justifyContent: 'center', alignItems: 'center' },
-  title: { fontWeight: 'bold', color: '#000' },
-  subtitle: { marginBottom: 20, color: '#666' },
-  sectionCard: { marginBottom: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
-  emptyText: { paddingVertical: 20, textAlign: 'center', color: '#999', fontStyle: 'italic' }
+  loaderContainer: { paddingVertical: 50, alignItems: 'center' },
+  header: { marginBottom: 10 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, marginBottom: 10 },
+  webDate: { padding: 8, borderRadius: 5, borderWidth: 2, borderStyle: 'solid', fontSize: 16, fontWeight: 'bold' },
+  title: { fontWeight: 'bold' },
+  subtitle: { marginBottom: 20 },
+  sectionCard: { marginBottom: 20, borderWidth: 1 },
+  emptyText: { paddingVertical: 20, textAlign: 'center', fontStyle: 'italic' }
 });
 
 export default DailySummaryScreen;

@@ -14,6 +14,8 @@ CREATE TABLE attendance_logs (
     emp_code TEXT REFERENCES employees(emp_code) ON DELETE CASCADE,
     date DATE NOT NULL DEFAULT CURRENT_DATE,
     status TEXT CHECK (status IN ('PRESENT', 'ABSENT', 'HALF_DAY', 'OFF')),
+    permission_hours NUMERIC DEFAULT 0,
+    late_hours NUMERIC DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(emp_code, date)
 );
