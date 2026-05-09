@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, ScrollView, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
 import { Text, Button, Card, Avatar, Portal, Dialog, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { importEmployeesFromExcel } from '../utils/excelUtils';
@@ -169,14 +169,30 @@ const styles = StyleSheet.create({
   welcomeSection: { marginBottom: 32 },
   statsContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
   statsContainerMobile: { flexDirection: 'column', marginBottom: 8 },
-  statCard: { flex: 0.48, borderRadius: 16, elevation: 1, borderWidth: 1 },
+  statCard: { 
+    flex: 0.48, 
+    borderRadius: 16, 
+    borderWidth: 1,
+    ...Platform.select({
+      web: { boxShadow: '0 1px 3px rgba(0,0,0,0.12)' },
+      default: { elevation: 1 }
+    }) as any
+  },
   statCardMobile: { width: '100%', marginBottom: 16 },
   center: { alignItems: 'center', paddingVertical: 20 },
   statNum: { fontWeight: '800', marginTop: 12 },
   statLabel: { textTransform: 'uppercase', letterSpacing: 1, fontSize: 12, fontWeight: '700' },
   sectionTitle: { marginBottom: 16, fontWeight: '800' },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  actionCard: { marginBottom: 16, borderRadius: 12, elevation: 1, borderWidth: 1 },
+  actionCard: { 
+    marginBottom: 16, 
+    borderRadius: 12, 
+    borderWidth: 1,
+    ...Platform.select({
+      web: { boxShadow: '0 1px 2px rgba(0,0,0,0.1)' },
+      default: { elevation: 1 }
+    }) as any
+  },
   actionTitle: { marginTop: 12, fontWeight: '700', textAlign: 'center' },
   footerActions: { flexDirection: 'row', marginTop: 20, justifyContent: 'center' },
   footerActionsMobile: { flexDirection: 'column' },

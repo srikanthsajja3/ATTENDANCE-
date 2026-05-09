@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Platform } from 'react-native';
-import { Text, Card, Button, useTheme } from 'react-native-paper';
+import { Text, Card, Button, useTheme, Avatar } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import EmployeeProfileModal from '../components/EmployeeProfileModal';
 
 const AttendanceScreen = () => {
   const [loading, setLoading] = useState(true);
@@ -10,6 +11,10 @@ const AttendanceScreen = () => {
   const [records, setRecords] = useState<Record<string, string>>({});
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
+  
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+
   const theme = useTheme();
 
   const dateStr = date.toISOString().split('T')[0];
@@ -17,7 +22,7 @@ const AttendanceScreen = () => {
   const fetchData = async (selectedDate: string) => {
     try {
       setLoading(true);
-      const { data: empData } = await supabase.from('employees').select('emp_code, name').eq('is_active', true).order('emp_code');
+      const { data: empData } = await supabase.from('employees').select('*').eq('is_active', true).order('emp_code');
       setEmployees(empData || []);
       const { data: logData } = await supabase.from('attendance_logs').select('emp_code, status').eq('date', selectedDate);
       const logMap: Record<string, string> = {};
@@ -76,9 +81,18 @@ const AttendanceScreen = () => {
             return (
               <Card style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
                 <Card.Content style={styles.row}>
-                  <View style={styles.info}>
-                    <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>{item.name}</Text>
-                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{item.emp_code}</Text>
+                  <View style={styles.infoRow}>
+                    <TouchableOpacity onPress={() => { setSelectedProfile(item); setProfileVisible(true); }} style={{ marginRight: 12 }}>
+                      {item.avatar_url ? (
+                        <Avatar.Image size={40} source={{ uri: item.avatar_url }} />
+                      ) : (
+                        <Avatar.Text size={40} label={item.name.substring(0, 2).toUpperCase()} />
+                      )}
+                    </TouchableOpacity>
+                    <View style={styles.info}>
+                      <Text variant="titleSmall" style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>{item.name}</Text>
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{item.emp_code}</Text>
+                    </View>
                   </View>
                   <View style={styles.actions}>
                     <TouchableOpacity onPress={() => markAttendance(item.emp_code, 'PRESENT')} style={[styles.btn, { borderColor: theme.colors.outline }, status === 'PRESENT' && {backgroundColor: '#10B981', borderColor: '#10B981'}]}>
@@ -100,6 +114,12 @@ const AttendanceScreen = () => {
           }}
         />
       )}
+
+      <EmployeeProfileModal 
+        visible={profileVisible} 
+        onDismiss={() => setProfileVisible(false)} 
+        employee={selectedProfile} 
+      />
     </View>
   );
 };
@@ -112,6 +132,7 @@ const styles = StyleSheet.create({
   list: { padding: 15, maxWidth: 800, width: '100%', alignSelf: 'center' },
   card: { marginBottom: 10, borderWidth: 1 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   info: { flex: 1 },
   actions: { flexDirection: 'row' },
   btn: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },

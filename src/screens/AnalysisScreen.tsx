@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, FlatList, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Text, Button, Card, Searchbar, Avatar, useTheme } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
+import EmployeeProfileModal from '../components/EmployeeProfileModal';
 
 const AnalysisScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -10,6 +11,10 @@ const AnalysisScreen = () => {
   const [filteredEmployees, setFilteredEmployees] = useState<any[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+
   const [stats, setStats] = useState({ 
     present: 0, 
     absent: 0, 
@@ -108,8 +113,14 @@ const AnalysisScreen = () => {
           <ScrollView style={styles.scrollContent}>
             <Card style={[styles.profileCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
               <Card.Content style={styles.center}>
-                <Avatar.Text size={64} label={selectedEmployee.name.substring(0,2).toUpperCase()} style={{ backgroundColor: theme.colors.primary }} color={theme.colors.onPrimary} />
-                <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: 'bold', marginTop: 10 }}>{selectedEmployee.name}</Text>
+                <TouchableOpacity onPress={() => { setSelectedProfile(selectedEmployee); setProfileVisible(true); }}>
+                  {selectedEmployee.avatar_url ? (
+                    <Avatar.Image size={64} source={{ uri: selectedEmployee.avatar_url }} style={{ backgroundColor: theme.colors.primary }} />
+                  ) : (
+                    <Avatar.Text size={64} label={selectedEmployee.name.substring(0,2).toUpperCase()} style={{ backgroundColor: theme.colors.primary }} color={theme.colors.onPrimary} />
+                  )}
+                </TouchableOpacity>
+                <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: 'bold', marginTop: 10 }}>{selectedEmployee.name}</Text>
                 <Text variant="labelLarge" style={[styles.cycleBadge, { backgroundColor: theme.colors.surfaceVariant, color: theme.colors.onSurfaceVariant }]}>
                     Cycle: 26 {months[selectedMonth === 0 ? 11 : selectedMonth - 1]} - 25 {months[selectedMonth]}
                 </Text>
@@ -165,9 +176,18 @@ const AnalysisScreen = () => {
               <Card style={[styles.listCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]} onPress={() => setSelectedEmployee(item)}>
                 <Card.Title 
                     title={item.name} 
-                    titleStyle={{ color: theme.colors.onSurface }}
+                    titleStyle={{ color: theme.colors.onSurface, fontSize: 14 }}
                     subtitle={item.emp_code}
                     subtitleStyle={{ color: theme.colors.onSurfaceVariant }}
+                    left={(props) => (
+                      <TouchableOpacity onPress={() => { setSelectedProfile(item); setProfileVisible(true); }}>
+                        {item.avatar_url ? (
+                          <Avatar.Image {...props} source={{ uri: item.avatar_url }} size={40} />
+                        ) : (
+                          <Avatar.Text {...props} label={item.name.substring(0, 2).toUpperCase()} size={40} />
+                        )}
+                      </TouchableOpacity>
+                    )}
                     right={() => <Button icon="chevron-right" onPress={() => setSelectedEmployee(item)}>View</Button>} 
                 />
               </Card>
@@ -175,6 +195,13 @@ const AnalysisScreen = () => {
           />
         </View>
       )}
+
+      <EmployeeProfileModal 
+        visible={profileVisible} 
+        onDismiss={() => setProfileVisible(false)} 
+        employee={selectedProfile} 
+      />
+
       {loading && <ActivityIndicator animating={true} style={styles.loader} />}
     </View>
   );

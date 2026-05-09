@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Alert, ActivityIndicator, Platform, TextInput } from 'react-native';
-import { Text, Card, Button, useTheme } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, ActivityIndicator, Platform, TextInput, TouchableOpacity } from 'react-native';
+import { Text, Card, Button, useTheme, Avatar } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import EmployeeProfileModal from '../components/EmployeeProfileModal';
 
 interface TimeRecord {
   permH: string;
@@ -17,6 +18,10 @@ const PermissionsScreen = () => {
   const [records, setRecords] = useState<Record<string, TimeRecord>>({});
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
+
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+
   const theme = useTheme();
 
   // Use local date parts to avoid UTC shifting
@@ -160,9 +165,18 @@ const PermissionsScreen = () => {
             return (
               <Card style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant }]}>
                 <Card.Content style={styles.row}>
-                  <View style={styles.info}>
-                    <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>{item.name}</Text>
-                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{item.emp_code}</Text>
+                  <View style={styles.infoRow}>
+                    <TouchableOpacity onPress={() => { setSelectedProfile(item); setProfileVisible(true); }} style={{ marginRight: 12 }}>
+                      {item.avatar_url ? (
+                        <Avatar.Image size={40} source={{ uri: item.avatar_url }} />
+                      ) : (
+                        <Avatar.Text size={40} label={item.name.substring(0, 2).toUpperCase()} />
+                      )}
+                    </TouchableOpacity>
+                    <View style={styles.info}>
+                      <Text variant="titleSmall" style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>{item.name}</Text>
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>{item.emp_code}</Text>
+                    </View>
                   </View>
                   
                   <View style={styles.inputsRow}>
@@ -232,6 +246,12 @@ const PermissionsScreen = () => {
           }}
         />
       )}
+
+      <EmployeeProfileModal 
+        visible={profileVisible} 
+        onDismiss={() => setProfileVisible(false)} 
+        employee={selectedProfile} 
+      />
     </View>
   );
 };
@@ -244,6 +264,7 @@ const styles = StyleSheet.create({
   list: { padding: 15, maxWidth: 800, width: '100%', alignSelf: 'center' },
   card: { marginBottom: 10, borderWidth: 1 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   info: { flex: 1 },
   inputsRow: { flexDirection: 'row' },
   inputGroup: { alignItems: 'center', marginLeft: 15 },
